@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arsenal Voicemail</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{margin:0;padding:0;background:#000;font-family:sans-serif;overflow:hidden;width:100vw;height:100vh}
+.screen-wrap{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden}
+.screen{width:100%;height:100%;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
+
+.bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse at 50% 30%,#cc0000 0%,#880000 40%,#3a0000 75%,#1a0000 100%)}
+.dots{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.35;background-image:radial-gradient(circle,#ff0000 1px,transparent 1px);background-size:8px 8px}
+.wm{position:absolute;inset:0;z-index:2;pointer-events:none;display:flex;align-items:center;justify-content:center;opacity:0.07}
+.scanlines{position:absolute;inset:0;z-index:11;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0px,transparent 2px,rgba(0,0,0,0.13) 2px,rgba(0,0,0,0.13) 4px)}
+.vig{position:absolute;inset:0;z-index:12;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.6) 100%)}
+.flicker{position:absolute;inset:0;z-index:14;pointer-events:none;animation:fl 0.13s infinite}
+@keyframes fl{0%{opacity:1}49%{opacity:0.97}50%{opacity:1}92%{opacity:0.94}100%{opacity:1}}
+.nc{position:absolute;inset:0;z-index:15;pointer-events:none;opacity:0.04;width:100%;height:100%}
+.cc{position:absolute;inset:0;z-index:13;pointer-events:none;width:100%;height:100%;opacity:0.45}
+
+.ui{position:relative;z-index:5;flex:1;display:flex;flex-direction:column}
+
+.view{position:absolute;top:0;left:0;right:0;bottom:0;z-index:6;display:none;flex-direction:column}
+.view.active{display:flex}
+
+/* SPLASH */
+.splash-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;padding:20px}
+.splash-title{font-family:'Courier New',monospace;font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:3px;text-transform:uppercase;text-align:center}
+.splash-btns{display:flex;gap:20px;justify-content:center;width:100%}
+.splash-btn{display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer;flex:1}
+.splash-btn:active .sico{transform:scale(0.93)}
+.sico{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#ff4444,#cc0000 50%,#880000);border:3px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;transition:transform 0.1s;box-shadow:0 4px 16px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.15)}
+.sico-lbl{font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase;text-align:center}
+.select-bar{height:44px;display:flex;align-items:center;justify-content:center}
+.sel-txt{font-family:'Courier New',monospace;font-size:18px;font-weight:bold;color:#fff;letter-spacing:6px;text-shadow:0 0 10px rgba(255,100,100,0.8),2px 0 0 rgba(255,0,0,0.4),-2px 0 0 rgba(0,0,255,0.2)}
+
+/* TOP BAR */
+.topbar{height:44px;display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0;background:#cc0000;border-bottom:2px solid #aa0000}
+.back-btn{font-family:'Courier New',monospace;font-size:10px;color:#fff;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.4);border-radius:4px;padding:4px 8px;cursor:pointer;letter-spacing:1px;font-weight:bold;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.screen-title{font-family:'Courier New',monospace;font-size:14px;color:#fff;font-weight:bold;letter-spacing:2px;text-transform:uppercase;flex:1;text-align:center}
+
+/* PHONEBOOK */
+.phonebook-list{flex:1;overflow-y:auto}
+.pb-row{display:flex;align-items:center;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.07);background:rgba(20,0,0,0.55);transition:background 0.1s;position:relative}
+.pb-row:active{background:rgba(180,0,0,0.4)}
+.pb-photo-wrap{width:80px;height:80px;flex-shrink:0;overflow:hidden;background:#1a0000;display:flex;align-items:center;justify-content:center}
+.pb-photo-wrap img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.pb-photo-placeholder{width:80px;height:80px;background:radial-gradient(circle at 38% 35%,#cc2222,#660000);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pb-info{flex:1;padding:0 12px}
+.pb-name{font-family:'Courier New',monospace;font-size:13px;font-weight:bold;color:#fff;letter-spacing:1px}
+.pb-status{font-size:11px;font-family:'Courier New',monospace;margin-top:3px;letter-spacing:0.5px}
+.pb-prog-wrap{position:absolute;bottom:0;left:80px;right:0;height:2px;background:rgba(255,255,255,0.05)}
+.pb-prog-fill{height:100%;background:#ff4444;width:0%;box-shadow:0 0 4px #ff0000}
+
+/* PLAYER SCREEN */
+.player-screen{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.player-hero{height:200px;background:#1a0000;position:relative;flex-shrink:0;overflow:hidden;display:flex;align-items:flex-end}
+.player-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.player-hero-placeholder{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#cc2222,#440000);display:flex;align-items:center;justify-content:center}
+.player-hero-grad{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,rgba(0,0,0,0.85))}
+.player-hero-info{position:relative;z-index:2;padding:10px 14px;width:100%}
+.player-hero-name{font-family:'Courier New',monospace;font-size:16px;font-weight:bold;color:#fff;letter-spacing:2px;text-shadow:0 0 10px rgba(255,0,0,0.5)}
+.player-hero-status{font-family:'Courier New',monospace;font-size:10px;margin-top:3px;letter-spacing:1px}
+.player-vm-section{flex:1;display:flex;flex-direction:column;background:rgba(10,0,0,0.7);padding:12px}
+.vm-play-card{border:1px solid rgba(255,255,255,0.15);border-radius:6px;background:rgba(0,0,0,0.4);padding:12px;margin-bottom:10px}
+.vm-card-label{font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.vm-waveform{display:flex;align-items:center;gap:2px;height:36px;margin-bottom:8px}
+.vm-wbar{width:4px;border-radius:2px;background:rgba(255,100,100,0.3);flex-shrink:0;transition:height 0.1s}
+.vm-wbar.active{background:#ff4444;box-shadow:0 0 3px #ff0000}
+.vm-controls{display:flex;align-items:center;gap:10px}
+.vm-big-play{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#ff4444,#aa0000);border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform 0.1s}
+.vm-big-play:active{transform:scale(0.93)}
+.vm-duration{font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:1px;flex:1}
+.vm-progress{flex:2;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden}
+.vm-progress-fill{height:100%;background:#ff4444;width:0%;transition:width 0.1s;box-shadow:0 0 4px #ff0000}
+.back-to-list{margin-top:auto;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:1px;text-align:center;cursor:pointer;padding:8px;border:1px solid rgba(255,255,255,0.1);border-radius:4px;text-transform:uppercase}
+.back-to-list:active{background:rgba(255,255,255,0.08)}
+
+/* KEYPAD */
+.keypad-view{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 16px 8px;gap:0;overflow:hidden}
+.call-screen{width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:14px;text-align:center;margin-bottom:12px;flex-shrink:0}
+.call-number{font-family:'Courier New',monospace;font-size:22px;color:#fff;letter-spacing:3px;min-height:30px;text-shadow:0 0 8px rgba(255,100,100,0.5)}
+.call-status{font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:2px;margin-top:4px;text-transform:uppercase}
+.call-timer{font-family:'Courier New',monospace;font-size:13px;color:#ff4444;letter-spacing:2px;margin-top:4px;min-height:18px;text-shadow:0 0 6px rgba(255,0,0,0.5)}
+.kpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-bottom:10px;flex-shrink:0}
+.kkey{height:52px;border-radius:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.08s,background 0.08s;-webkit-tap-highlight-color:transparent}
+.kkey:active{transform:scale(0.94);background:rgba(255,255,255,0.18)}
+.kkey-num{font-family:'Courier New',monospace;font-size:18px;font-weight:bold;color:#fff;line-height:1;text-shadow:0 0 6px rgba(255,100,100,0.4)}
+.kkey-alpha{font-family:'Courier New',monospace;font-size:7px;color:rgba(255,255,255,0.4);letter-spacing:1px;margin-top:1px}
+.call-actions{display:flex;gap:10px;width:100%;margin-top:2px;flex-shrink:0;justify-content:center}
+.ca-btn{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid;transition:transform 0.08s;-webkit-tap-highlight-color:transparent}
+.ca-btn:active{transform:scale(0.93)}
+.btn-call{background:radial-gradient(circle at 38% 35%,#44cc44,#228822);border-color:rgba(100,255,100,0.3)}
+.btn-end{background:radial-gradient(circle at 38% 35%,#ff4444,#aa0000);border-color:rgba(255,100,100,0.3)}
+.btn-rec{background:radial-gradient(circle at 38% 35%,#ff6644,#cc2200);border-color:rgba(255,150,100,0.3)}
+.rec-bar{width:100%;padding:8px 0 0;flex-shrink:0}
+.rec-vu-wrap{width:100%;height:28px;border:1px solid rgba(255,255,255,0.15);border-radius:3px;background:rgba(0,0,0,0.4);position:relative;overflow:hidden;margin-bottom:6px}
+.vu-segs{position:absolute;inset:0;display:flex;align-items:flex-end;padding:2px;gap:1px}
+.vu-seg{flex:1;border-radius:1px 1px 0 0}
+.vu-cover{position:absolute;top:0;right:0;bottom:0;background:rgba(0,0,0,0.7);transition:width 0.08s;width:100%}
+.rec-status{display:flex;align-items:center;gap:6px;font-family:'Courier New',monospace;font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:1px;text-transform:uppercase;justify-content:center}
+.rdot{width:7px;height:7px;border-radius:50%}
+.blink{animation:bl 0.85s step-start infinite}
+@keyframes bl{50%{opacity:0}}
+.dialing-dots span{display:inline-block;animation:dd 1.2s infinite;font-family:'Courier New',monospace;font-size:14px;color:rgba(255,255,255,0.6)}
+.dialing-dots span:nth-child(2){animation-delay:0.2s}
+.dialing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes dd{0%,80%,100%{opacity:0.2}40%{opacity:1}}
+.perm-txt{font-family:'Courier New',monospace;font-size:9px;color:rgba(255,150,150,0.8);text-align:center;margin-top:6px;padding:0 8px}
+
+/* REVIEW SCREEN */
+.review-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:20px}
+.review-title{font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:3px;text-transform:uppercase;text-align:center}
+.review-duration{font-family:'Courier New',monospace;font-size:42px;font-weight:bold;color:#ff4444;letter-spacing:4px;text-shadow:0 0 16px rgba(255,0,0,0.5)}
+.review-wave{display:flex;align-items:center;gap:2px;height:48px;width:100%;justify-content:center}
+.review-wbar{flex:1;max-width:6px;border-radius:2px;background:rgba(255,100,100,0.25)}
+.review-wbar.lit{background:#ff4444;box-shadow:0 0 3px #ff0000}
+.review-progress{width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden}
+.review-progress-fill{height:100%;background:#ff4444;width:0%;transition:width 0.1s;box-shadow:0 0 4px #ff0000}
+.review-actions{display:flex;gap:16px;width:100%;justify-content:center;margin-top:8px}
+.ract{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;flex:1}
+.ract:active .ract-ico{transform:scale(0.92)}
+.ract-ico{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid;transition:transform 0.1s}
+.ract-lbl{font-family:'Courier New',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<div class="screen-wrap">
+  <div class="screen">
+
+      <div class="bg"></div>
+      <div class="dots"></div>
+      <div class="wm">
+        <svg width="220" height="220" viewBox="0 0 220 220" fill="none">
+          <circle cx="110" cy="110" r="100" stroke="white" stroke-width="3" fill="none"/>
+          <circle cx="110" cy="110" r="70" stroke="white" stroke-width="2" fill="none"/>
+          <line x1="110" y1="10" x2="110" y2="210" stroke="white" stroke-width="2"/>
+          <line x1="10" y1="110" x2="210" y2="110" stroke="white" stroke-width="2"/>
+          <line x1="39" y1="39" x2="181" y2="181" stroke="white" stroke-width="1.5"/>
+          <line x1="181" y1="39" x2="39" y2="181" stroke="white" stroke-width="1.5"/>
+          <circle cx="110" cy="110" r="12" stroke="white" stroke-width="2" fill="none"/>
+        </svg>
+      </div>
+
+      <div class="ui">
+
+        <!-- SPLASH -->
+        <div class="view active" id="vSplash">
+          <div class="splash-body">
+            <div class="splash-title">You have a message</div>
+            <div class="splash-btns">
+              <div class="splash-btn" onclick="goTo('vPhonebook')">
+                <div class="sico">
+                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="6" width="20" height="12" rx="6" stroke="white" stroke-width="2.2" fill="none"/>
+                    <circle cx="7" cy="12" r="3" stroke="white" stroke-width="2" fill="none"/>
+                    <circle cx="17" cy="12" r="3" stroke="white" stroke-width="2" fill="none"/>
+                    <line x1="10" y1="15" x2="14" y2="15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="sico-lbl">Hear<br>voicemail</div>
+              </div>
+              <div class="splash-btn" onclick="goTo('vKeypad')">
+                <div class="sico">
+                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none">
+                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" stroke="white" stroke-width="2.2" fill="none" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="sico-lbl">Leave<br>message</div>
+              </div>
+            </div>
+            <div class="select-bar"><span class="sel-txt">SELECT</span></div>
+          </div>
+        </div>
+
+        <!-- PHONEBOOK -->
+        <div class="view" id="vPhonebook">
+          <div class="topbar">
+            <span class="back-btn" onclick="goTo('vSplash');stopVM()">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="white"><polygon points="7,1 3,5 7,9"/></svg>
+              Back
+            </span>
+            <span class="screen-title">Phonebook</span>
+          </div>
+          <div class="phonebook-list" id="phonebookList"></div>
+        </div>
+
+        <!-- PLAYER DETAIL -->
+        <div class="view" id="vPlayer">
+          <div class="topbar">
+            <span class="back-btn" onclick="goTo('vPhonebook');stopVM()">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="white"><polygon points="7,1 3,5 7,9"/></svg>
+              Back
+            </span>
+            <span class="screen-title" id="playerScreenTitle">Player</span>
+          </div>
+          <div class="player-screen" id="playerScreen"></div>
+        </div>
+
+        <!-- KEYPAD / LEAVE MESSAGE -->
+        <div class="view" id="vKeypad">
+          <div class="topbar">
+            <span class="back-btn" onclick="endCall()">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="white"><polygon points="7,1 3,5 7,9"/></svg>
+              Back
+            </span>
+            <span class="screen-title">New Message</span>
+          </div>
+          <div class="keypad-view">
+            <div class="call-screen">
+              <div class="call-number" id="dialNum">&nbsp;</div>
+              <div class="call-status" id="callStatus">dial a number</div>
+              <div class="call-timer" id="callTimer">&nbsp;</div>
+            </div>
+            <div class="kpad">
+              <div class="kkey" onclick="dialPress('1')"><span class="kkey-num">1</span><span class="kkey-alpha">&nbsp;</span></div>
+              <div class="kkey" onclick="dialPress('2')"><span class="kkey-num">2</span><span class="kkey-alpha">ABC</span></div>
+              <div class="kkey" onclick="dialPress('3')"><span class="kkey-num">3</span><span class="kkey-alpha">DEF</span></div>
+              <div class="kkey" onclick="dialPress('4')"><span class="kkey-num">4</span><span class="kkey-alpha">GHI</span></div>
+              <div class="kkey" onclick="dialPress('5')"><span class="kkey-num">5</span><span class="kkey-alpha">JKL</span></div>
+              <div class="kkey" onclick="dialPress('6')"><span class="kkey-num">6</span><span class="kkey-alpha">MNO</span></div>
+              <div class="kkey" onclick="dialPress('7')"><span class="kkey-num">7</span><span class="kkey-alpha">PQRS</span></div>
+              <div class="kkey" onclick="dialPress('8')"><span class="kkey-num">8</span><span class="kkey-alpha">TUV</span></div>
+              <div class="kkey" onclick="dialPress('9')"><span class="kkey-num">9</span><span class="kkey-alpha">WXYZ</span></div>
+              <div class="kkey" onclick="dialPress('*')"><span class="kkey-num">*</span><span class="kkey-alpha">&nbsp;</span></div>
+              <div class="kkey" onclick="dialPress('0')"><span class="kkey-num">0</span><span class="kkey-alpha">+</span></div>
+              <div class="kkey" onclick="dialPress('#')"><span class="kkey-num">#</span><span class="kkey-alpha">&nbsp;</span></div>
+            </div>
+            <div id="recBar" class="rec-bar" style="display:none">
+              <div class="rec-vu-wrap">
+                <div class="vu-segs">
+                  <div class="vu-seg" style="height:25%;background:#22ee44"></div>
+                  <div class="vu-seg" style="height:40%;background:#22ee44"></div>
+                  <div class="vu-seg" style="height:55%;background:#66cc22"></div>
+                  <div class="vu-seg" style="height:70%;background:#66cc22"></div>
+                  <div class="vu-seg" style="height:80%;background:#aacc00"></div>
+                  <div class="vu-seg" style="height:88%;background:#ddaa00"></div>
+                  <div class="vu-seg" style="height:93%;background:#ee6600"></div>
+                  <div class="vu-seg" style="height:97%;background:#ee3300"></div>
+                </div>
+                <div class="vu-cover" id="vuCover"></div>
+              </div>
+              <div class="rec-status">
+                <div class="rdot blink" id="rdot" style="background:#555"></div>
+                <span id="recStatTxt">ready</span>
+              </div>
+            </div>
+            <div class="call-actions">
+              <div class="ca-btn btn-call" id="callBtn" onclick="handleCall()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" fill="white"/>
+                </svg>
+              </div>
+              <div class="ca-btn btn-rec" id="recBtn" onclick="handleRec()" style="display:none">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <rect x="9" y="2" width="6" height="11" rx="3" fill="white"/>
+                  <path d="M5 10a7 7 0 0014 0" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                  <line x1="12" y1="17" x2="12" y2="21" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="ca-btn btn-end" id="endBtn" onclick="endCall()" style="display:none">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <line x1="3" y1="3" x2="21" y2="21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" stroke="white" stroke-width="2" fill="none"/>
+                </svg>
+              </div>
+            </div>
+            <div class="perm-txt" id="permTxt"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+        <!-- REVIEW SCREEN -->
+        <div class="view" id="vReview">
+          <div class="topbar">
+            <span class="back-btn" onclick="reviewDiscard()">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="white"><polygon points="7,1 3,5 7,9"/></svg>
+              Back
+            </span>
+            <span class="screen-title">Review Message</span>
+          </div>
+          <div class="bg"></div>
+          <div class="dots"></div>
+          <div class="review-screen">
+            <div class="review-title">message recorded</div>
+            <div class="review-duration" id="reviewDur">0:00</div>
+            <div class="review-wave" id="reviewWave"></div>
+            <div class="review-progress" id="reviewProgWrap">
+              <div class="review-progress-fill" id="reviewProg"></div>
+            </div>
+            <div class="review-actions">
+              <div class="ract" onclick="reviewPlay()">
+                <div class="ract-ico" id="reviewPlayBtn" style="background:radial-gradient(circle at 38% 35%,#334488,#112266);border-color:rgba(100,150,255,0.3)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="6,4 20,12 6,20"/></svg>
+                </div>
+                <div class="ract-lbl" style="color:rgba(100,150,255,0.8)">replay</div>
+              </div>
+              <div class="ract" onclick="reviewDiscard()">
+                <div class="ract-ico" style="background:radial-gradient(circle at 38% 35%,#883333,#661111);border-color:rgba(255,100,100,0.3)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polyline points="3,6 5,6 21,6"/><path d="M19,6l-1,14H6L5,6"/><path d="M10,11v6M14,11v6"/><path d="M9,6V4h6v2"/></svg>
+                </div>
+                <div class="ract-lbl" style="color:rgba(255,100,100,0.8)">delete</div>
+              </div>
+              <div class="ract" onclick="reviewSend()">
+                <div class="ract-ico" style="background:radial-gradient(circle at 38% 35%,#338833,#116611);border-color:rgba(100,255,100,0.3)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+                </div>
+                <div class="ract-lbl" style="color:rgba(100,255,100,0.8)">send</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="scanlines"></div>
+    <div class="vig"></div>
+    <div class="flicker"></div>
+    <canvas id="nc" class="nc"></canvas>
+    <canvas id="cc" class="cc"></canvas>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PLAYERS ARRAY
+   To add a real photo, add an img field pointing to your file:
+   img: 'photos/saka.jpg'
+   To add a real audio voicemail, add a src field:
+   src: 'audio/saka.mp3'
+   Duration (dur) is in seconds.
+============================================================ */
+const PLAYERS = [
+  {id:'saka',       name:'SAKA. B',        status:'Online',      statusColor:'#44dd44', dur:12,  img:'photos/saka.jpg', src:null},
+  {id:'rice',       name:'RICE. D',        status:'Unavailable', statusColor:'#aaaaaa', dur:28,  img:'photos/rice.jpg', src:null},
+  {id:'russo',      name:'RUSSO. A',       status:'Online',      statusColor:'#44dd44', dur:9,   img:'photos/russo.jpg', src:null},
+  {id:'eze',        name:'EZE. E',         status:'Online',      statusColor:'#44dd44', dur:17,  img:'photos/eze.jpg', src:null},
+  {id:'havertz',    name:'HAVERTZ. K',     status:'Training',    statusColor:'#44dd44', dur:22,  img:'photos/havertz.jpg', src:null},
+  {id:'mead',       name:'MEAD. B',        status:'Matchday',    statusColor:'#aaaaaa', dur:15,  img:'photos/mead.jpg', src:null},
+  {id:'gabriel',    name:'GABRIEL. M',     status:'Matchday',    statusColor:'#aaaaaa', dur:31,  img:'photos/gabriel.jpg', src:null},
+  {id:'white',      name:'WHITE. B',       status:'Offline',     statusColor:'#666666', dur:8,   img:'photos/white.jpg', src:null},
+  {id:'saliba',     name:'SALIBA. W',      status:'Training',    statusColor:'#44dd44', dur:19,  img:'photos/saliba.jpg', src:null},
+  {id:'martinelli', name:'MARTINELLI. G',  status:'Online',      statusColor:'#44dd44', dur:14,  img:'photos/martinelli.jpg', src:null},
+];
+
+/* ============================================================
+   STATUS DOT CONFIG
+   Add or edit statuses here. color = dot/text colour.
+============================================================ */
+const STATUS_STYLE = {
+  'Online':      '#44dd44',
+  'Unavailable': '#aaaaaa',
+  'Offline':     '#666666',
+  'Training':    '#44dd44',
+  'Matchday':    '#aaaaaa',
+};
+
+let playingVM = -1, vmAudio = null, currentPlayer = null;
+let dialStr = '', callState = 'idle', callInt = null, callSecs = 0;
+let isRec = false, recSecs = 0, recInt = null, waveInt = null;
+let mediaRec = null, audioChunks = [], analyser = null, audioCtx = null;
+let newMemos = [];
+let _waveAnimInt = null;
+
+function fmt(s){return Math.floor(s/60)+':'+(s%60<10?'0':'')+s%60;}
+
+function clkTick(){
+  const n=new Date();
+  document.getElementById('clk').textContent=(n.getHours()<10?'0':'')+n.getHours()+':'+(n.getMinutes()<10?'0':'')+n.getMinutes();
+}
+clkTick(); setInterval(clkTick,20000);
+
+/* CRT noise */
+const ncEl=document.getElementById('nc'), nCtx=ncEl.getContext('2d');
+function drawNoise(){
+  ncEl.width=300; ncEl.height=640;
+  const img=nCtx.createImageData(300,640);
+  for(let i=0;i<img.data.length;i+=4){const v=Math.random()*255|0;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}
+  nCtx.putImageData(img,0,0);
+}
+drawNoise(); setInterval(drawNoise,100);
+
+/* CRT chroma */
+const ccEl=document.getElementById('cc'), cCtx=ccEl.getContext('2d');
+function drawChroma(){
+  ccEl.width=300; ccEl.height=640; cCtx.clearRect(0,0,300,640);
+  for(let y=0;y<320;y++){
+    const yo=y*2, iv=Math.random()*0.06;
+    if(iv>0.04){
+      cCtx.fillStyle='rgba(255,0,0,'+iv+')'; cCtx.fillRect(2,yo,298,1);
+      cCtx.fillStyle='rgba(0,0,200,'+(iv*0.6)+')'; cCtx.fillRect(-1,yo,298,1);
+    }
+  }
+}
+drawChroma(); setInterval(drawChroma,160);
+
+/* ── NAVIGATION ─────────────────────────────────────────────── */
+function goTo(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='vPhonebook') renderPhonebook();
+  if(id==='vKeypad') resetKeypad();
+}
+
+/* ── PHONEBOOK ──────────────────────────────────────────────── */
+function renderPhonebook(){
+  const list=document.getElementById('phonebookList');
+  list.innerHTML='';
+  PLAYERS.forEach((p,i)=>{
+    const color=STATUS_STYLE[p.status]||'#aaaaaa';
+    const row=document.createElement('div');
+    row.className='pb-row';
+
+    const photoHTML = p.img
+      ? '<div class="pb-photo-wrap"><img src="'+p.img+'" alt="'+p.name+'"/></div>'
+      : '<div class="pb-photo-placeholder"><svg width="36" height="36" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>';
+
+    row.innerHTML=
+      photoHTML+
+      '<div class="pb-info">'+
+        '<div class="pb-name">'+p.name+'</div>'+
+        '<div class="pb-status" style="color:'+color+'">• '+p.status+'</div>'+
+      '</div>'+
+      '<div class="pb-prog-wrap"><div class="pb-prog-fill" id="pbp'+i+'"></div></div>';
+
+    row.onclick=()=>openPlayer(i);
+    list.appendChild(row);
+  });
+}
+
+/* ── PLAYER DETAIL ──────────────────────────────────────────── */
+function openPlayer(i){
+  stopVM();
+  currentPlayer=i;
+  const p=PLAYERS[i];
+  const color=STATUS_STYLE[p.status]||'#aaaaaa';
+  document.getElementById('playerScreenTitle').textContent=p.name;
+
+  const wbars=Array.from({length:28},(_,j)=>{
+    const h=Math.max(10,Math.floor(Math.random()*90));
+    return '<div class="vm-wbar" id="wb'+j+'" style="height:'+h+'%;flex:1"></div>';
+  }).join('');
+
+  const heroHTML = p.img
+    ? '<img src="'+p.img+'" alt="'+p.name+'"/>'
+    : '<div class="player-hero-placeholder"><svg width="80" height="80" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="5" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none"/><path d="M3 20c0-5 4-9 9-9s9 4 9 9" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>';
+
+  document.getElementById('playerScreen').innerHTML=
+    '<div class="player-hero">'+
+      heroHTML+
+      '<div class="player-hero-grad"></div>'+
+      '<div class="player-hero-info">'+
+        '<div class="player-hero-name">'+p.name+'</div>'+
+        '<div class="player-hero-status" style="color:'+color+'">• '+p.status+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="player-vm-section">'+
+      '<div class="vm-play-card">'+
+        '<div class="vm-card-label">Voicemail &middot; '+fmt(p.dur)+'</div>'+
+        '<div class="vm-waveform" id="playerWave">'+wbars+'</div>'+
+        '<div class="vm-controls">'+
+          '<div class="vm-big-play" id="playerPlayBtn" onclick="togglePlayerVM('+i+')">'+
+            '<svg width="20" height="20" viewBox="0 0 20 20" fill="white"><polygon points="5,3 17,10 5,17"/></svg>'+
+          '</div>'+
+          '<div class="vm-duration" id="playerDur">'+fmt(p.dur)+'</div>'+
+          '<div class="vm-progress"><div class="vm-progress-fill" id="playerFill"></div></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="back-to-list" onclick="goTo(\'vPhonebook\');stopVM()">&#9668; back to phonebook</div>'+
+    '</div>';
+
+  goTo('vPlayer');
+}
+
+function togglePlayerVM(i){
+  if(playingVM===i){stopVM();_resetPlayerBtn();return;}
+  stopVM();
+  const p=PLAYERS[i];
+  playingVM=i;
+  if(p.src){
+    vmAudio=new Audio(p.src);
+    _playVMAudio(i);
+  } else {
+    _generateSilenceAndPlay(p.dur,i);
+  }
+}
+
+function _generateSilenceAndPlay(dur,i){
+  try{
+    const ac=new AudioContext();
+    const buf=ac.createBuffer(1,ac.sampleRate*Math.min(dur,6),ac.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let j=0;j<data.length;j++) data[j]=(Math.random()*2-1)*0.04*Math.exp(-j/(ac.sampleRate*4));
+    const src=ac.createBufferSource(); src.buffer=buf;
+    const dest=ac.createMediaStreamDestination();
+    src.connect(dest); src.start();
+    const mr=new MediaRecorder(dest.stream); const ch=[];
+    mr.ondataavailable=e=>ch.push(e.data);
+    mr.onstop=()=>{
+      vmAudio=new Audio(URL.createObjectURL(new Blob(ch,{type:'audio/webm'})));
+      _playVMAudio(i);
+    };
+    mr.start(); setTimeout(()=>mr.stop(),300);
+  }catch(e){ playingVM=-1; }
+}
+
+function _playVMAudio(i){
+  vmAudio.play().catch(()=>{});
+  vmAudio.ontimeupdate=()=>{
+    const fill=document.getElementById('playerFill');
+    const durEl=document.getElementById('playerDur');
+    if(fill&&vmAudio.duration) fill.style.width=Math.round(vmAudio.currentTime/vmAudio.duration*100)+'%';
+    if(durEl) durEl.textContent=fmt(Math.round(vmAudio.currentTime||0));
+    _animatePlayerWave(true);
+  };
+  vmAudio.onended=()=>{playingVM=-1;_resetPlayerBtn();_animatePlayerWave(false);};
+  const btn=document.getElementById('playerPlayBtn');
+  if(btn) btn.innerHTML='<svg width="16" height="16" viewBox="0 0 16 16" fill="white"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>';
+}
+
+function _animatePlayerWave(on){
+  clearInterval(_waveAnimInt);
+  if(on){
+    _waveAnimInt=setInterval(()=>{
+      for(let j=0;j<28;j++){
+        const b=document.getElementById('wb'+j);
+        if(b){b.style.height=Math.max(8,Math.floor(Math.random()*88)+8)+'%';b.classList.add('active');}
+      }
+    },120);
+  } else {
+    for(let j=0;j<28;j++){
+      const b=document.getElementById('wb'+j);
+      if(b){b.style.height=Math.max(10,Math.floor(Math.random()*40)+10)+'%';b.classList.remove('active');}
+    }
+  }
+}
+
+function _resetPlayerBtn(){
+  clearInterval(_waveAnimInt);
+  const btn=document.getElementById('playerPlayBtn');
+  if(btn) btn.innerHTML='<svg width="20" height="20" viewBox="0 0 20 20" fill="white"><polygon points="5,3 17,10 5,17"/></svg>';
+  const fill=document.getElementById('playerFill');
+  if(fill) fill.style.width='0%';
+  const durEl=document.getElementById('playerDur');
+  if(durEl&&currentPlayer!==null) durEl.textContent=fmt(PLAYERS[currentPlayer].dur);
+}
+
+function stopVM(){
+  clearInterval(_waveAnimInt);
+  if(vmAudio){vmAudio.pause();vmAudio=null;}
+  playingVM=-1;
+}
+
+/* ── KEYPAD ─────────────────────────────────────────────────── */
+function resetKeypad(){
+  dialStr=''; callState='idle';
+  document.getElementById('dialNum').innerHTML='&nbsp;';
+  document.getElementById('callStatus').textContent='dial a number';
+  document.getElementById('callTimer').innerHTML='&nbsp;';
+  document.getElementById('recBar').style.display='none';
+  document.getElementById('recBtn').style.display='none';
+  document.getElementById('endBtn').style.display='none';
+  document.getElementById('callBtn').style.display='flex';
+  document.getElementById('permTxt').textContent='';
+  _stopRecording();
+}
+
+function dialPress(k){
+  if(callState!=='idle') return;
+  if(dialStr.length>=12) return;
+  dialStr+=k;
+  const d=document.getElementById('dialNum');
+  if(d) d.textContent=dialStr.length<=4?dialStr:dialStr.length<=7?dialStr.slice(0,4)+' '+dialStr.slice(4):dialStr.slice(0,4)+' '+dialStr.slice(4,7)+' '+dialStr.slice(7);
+  try{
+    const ac=new AudioContext();
+    const tones={'1':[697,1209],'2':[697,1336],'3':[697,1477],'4':[770,1209],'5':[770,1336],'6':[770,1477],'7':[852,1209],'8':[852,1336],'9':[852,1477],'*':[941,1209],'0':[941,1336],'#':[941,1477]};
+    const f=tones[k]||[697,1336];
+    f.forEach(freq=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.frequency.value=freq; g.gain.value=0.08;
+      o.connect(g); g.connect(ac.destination);
+      o.start(); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.15); o.stop(ac.currentTime+0.15);
+    });
+  }catch(e){}
+}
+
+function handleCall(){
+  if(callState!=='idle') return;
+  if(!dialStr){document.getElementById('callStatus').textContent='enter a number first';return;}
+  callState='dialing';
+  document.getElementById('callBtn').style.display='none';
+  document.getElementById('endBtn').style.display='flex';
+  document.getElementById('callStatus').innerHTML='<span class="dialing-dots"><span>.</span><span>.</span><span>.</span></span>&nbsp;dialing';
+  try{
+    const ac=new AudioContext(); let t=ac.currentTime;
+    for(let i=0;i<4;i++){
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.frequency.value=480; o.type='sine';
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.06,t+0.05);
+      g.gain.setValueAtTime(0.06,t+0.35); g.gain.linearRampToValueAtTime(0,t+0.4);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t+0.5); t+=0.6;
+    }
+  }catch(e){}
+  setTimeout(()=>{
+    if(callState!=='dialing') return;
+    callState='connected';
+    document.getElementById('callStatus').textContent='connected — leave your message';
+    document.getElementById('callTimer').textContent='0:00';
+    document.getElementById('recBar').style.display='block';
+    document.getElementById('recBtn').style.display='flex';
+    callSecs=0;
+    callInt=setInterval(()=>{callSecs++;const el=document.getElementById('callTimer');if(el)el.textContent=fmt(callSecs);},1000);
+    _startRecording();
+  },2800);
+}
+
+function handleRec(){
+  if(isRec){
+    clearInterval(callInt);
+    _stopRecording();
+  } else {
+    _startRecording();
+  }
+}
+
+function endCall(){
+  clearInterval(callInt);
+  _stopRecording();
+  callState='idle';
+  goTo('vSplash');
+}
+
+let reviewBlob=null, reviewAudio=null, reviewDurSecs=0, reviewPlaying=false;
+
+async function _startRecording(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioCtx=new AudioContext(); analyser=audioCtx.createAnalyser(); analyser.fftSize=64;
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    mediaRec=new MediaRecorder(stream); audioChunks=[];
+    mediaRec.ondataavailable=e=>audioChunks.push(e.data);
+    mediaRec.onstop=()=>{
+      reviewDurSecs=callSecs||recSecs;
+      reviewBlob=new Blob(audioChunks,{type:'audio/webm'});
+      _showReview();
+    };
+    mediaRec.start(); isRec=true; recSecs=0;
+    document.getElementById('rdot').style.background='#ff3333';
+    document.getElementById('recStatTxt').textContent='recording...';
+    waveInt=setInterval(()=>{
+      if(!analyser) return;
+      const d=new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(d);
+      const avg=d.reduce((a,b)=>a+b,0)/d.length;
+      const vc=document.getElementById('vuCover');
+      if(vc) vc.style.width=Math.max(0,Math.min(100,100-avg/128*100))+'%';
+    },80);
+  }catch(e){
+    const pt=document.getElementById('permTxt');
+    if(pt) pt.textContent='Microphone access needed — allow in browser settings';
+  }
+}
+
+function _stopRecording(){
+  if(mediaRec&&isRec){mediaRec.stop();mediaRec.stream.getTracks().forEach(t=>t.stop());}
+  isRec=false; clearInterval(waveInt);
+  const rdot=document.getElementById('rdot');
+  const rst=document.getElementById('recStatTxt');
+  const vc=document.getElementById('vuCover');
+  if(rdot) rdot.style.background='#555';
+  if(rst) rst.textContent='ready';
+  if(vc) vc.style.width='100%';
+}
+
+function _showReview(){
+  document.getElementById('reviewDur').textContent=fmt(reviewDurSecs);
+  const wave=document.getElementById('reviewWave');
+  wave.innerHTML='';
+  const bars=32;
+  for(let i=0;i<bars;i++){
+    const h=Math.max(10,Math.floor(Math.random()*85)+10);
+    const d=document.createElement('div');
+    d.className='review-wbar';
+    d.style.height=h+'%';
+    wave.appendChild(d);
+  }
+  document.getElementById('reviewProg').style.width='0%';
+  reviewPlaying=false;
+  const btn=document.getElementById('reviewPlayBtn');
+  if(btn) btn.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="6,4 20,12 6,20"/></svg>';
+  goTo('vReview');
+}
+
+let _reviewWaveInt=null;
+function reviewPlay(){
+  if(reviewPlaying){
+    if(reviewAudio) reviewAudio.pause();
+    reviewPlaying=false;
+    clearInterval(_reviewWaveInt);
+    const btn=document.getElementById('reviewPlayBtn');
+    if(btn) btn.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="6,4 20,12 6,20"/></svg>';
+    return;
+  }
+  if(!reviewBlob) return;
+  reviewAudio=new Audio(URL.createObjectURL(reviewBlob));
+  reviewPlaying=true;
+  reviewAudio.play().catch(()=>{});
+  const btn=document.getElementById('reviewPlayBtn');
+  if(btn) btn.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+  reviewAudio.ontimeupdate=()=>{
+    const p=document.getElementById('reviewProg');
+    if(p&&reviewAudio.duration) p.style.width=Math.round(reviewAudio.currentTime/reviewAudio.duration*100)+'%';
+    const bars=document.querySelectorAll('.review-wbar');
+    const prog=reviewAudio.duration?reviewAudio.currentTime/reviewAudio.duration:0;
+    bars.forEach((b,i)=>{
+      b.classList.toggle('lit', i/bars.length < prog);
+    });
+  };
+  reviewAudio.onended=()=>{
+    reviewPlaying=false;
+    clearInterval(_reviewWaveInt);
+    if(btn) btn.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="6,4 20,12 6,20"/></svg>';
+  };
+}
+
+function reviewDiscard(){
+  if(reviewAudio){reviewAudio.pause();reviewAudio=null;}
+  reviewBlob=null; reviewPlaying=false;
+  clearInterval(_reviewWaveInt);
+  callState='idle';
+  goTo('vSplash');
+}
+
+function reviewSend(){
+  if(reviewAudio){reviewAudio.pause();reviewAudio=null;}
+  if(reviewBlob){
+    newMemos.push({url:URL.createObjectURL(reviewBlob), dur:reviewDurSecs});
+  }
+  reviewBlob=null; reviewPlaying=false;
+  callState='idle';
+  const sentView=document.getElementById('vReview');
+  const title=sentView.querySelector('.screen-title');
+  const rev=sentView.querySelector('.review-screen');
+  if(title) title.textContent='Sent';
+  if(rev) rev.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:16px"><div style="width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#338833,#116611);border:2px solid rgba(100,255,100,0.3);display:flex;align-items:center;justify-content:center"><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><polyline points="20,6 9,17 4,12"/></svg></div><div style="font-family:\'Courier New\',monospace;font-size:12px;color:rgba(255,255,255,0.6);letter-spacing:2px;text-transform:uppercase">message sent</div></div>';
+  setTimeout(()=>goTo('vSplash'), 2000);
+}
+
+function drawNoise(){
+  ncEl.width=window.innerWidth; ncEl.height=window.innerHeight;
+  const img=nCtx.createImageData(ncEl.width,ncEl.height);
+  for(let i=0;i<img.data.length;i+=4){const v=Math.random()*255|0;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}
+  nCtx.putImageData(img,0,0);
+}
+drawNoise(); setInterval(drawNoise,100);
+
+function drawChroma(){
+  const w=window.innerWidth,h=window.innerHeight;
+  ccEl.width=w; ccEl.height=h; cCtx.clearRect(0,0,w,h);
+  for(let y=0;y<Math.floor(h/2);y++){
+    const yo=y*2,iv=Math.random()*0.06;
+    if(iv>0.04){
+      cCtx.fillStyle='rgba(255,0,0,'+iv+')'; cCtx.fillRect(2,yo,w-4,1);
+      cCtx.fillStyle='rgba(0,0,200,'+(iv*0.6)+')'; cCtx.fillRect(-1,yo,w-2,1);
+    }
+  }
+}
+drawChroma(); setInterval(drawChroma,160);
+
+renderPhonebook();
+</script>
+</body>
+</html>
