@@ -6,16 +6,9 @@
 <title>Arsenal Voicemail</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:2rem 1rem;background:#111;font-family:sans-serif}
-.phone{width:300px;background:#1c1c1e;border-radius:44px;padding:10px;border:1px solid #3a3a3c;flex-shrink:0}
-.phone-inner{background:#000;border-radius:36px;overflow:hidden;position:relative}
-.notch-bar{height:36px;background:#000;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:relative;z-index:2}
-.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:80px;height:26px;background:#1c1c1e;border-radius:0 0 18px 18px}
-.nb-l{font-size:11px;color:#fff;font-weight:500;z-index:3;position:relative}
-.nb-r{display:flex;align-items:center;gap:5px;z-index:3;position:relative}
-.nb-r span{font-size:11px;color:#fff}
-.screen-wrap{position:relative;width:100%;height:640px;overflow:hidden}
-.screen{width:100%;height:640px;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
+body{margin:0;padding:0;background:#000;font-family:sans-serif;overflow:hidden;width:100vw;height:100vh}
+.screen-wrap{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden}
+.screen{width:100%;height:100%;position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden}
 
 .bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse at 50% 30%,#cc0000 0%,#880000 40%,#3a0000 75%,#1a0000 100%)}
 .dots{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0.35;background-image:radial-gradient(circle,#ff0000 1px,transparent 1px);background-size:8px 8px}
@@ -28,14 +21,8 @@ body{display:flex;justify-content:center;align-items:flex-start;min-height:100vh
 .cc{position:absolute;inset:0;z-index:13;pointer-events:none;width:100%;height:100%;opacity:0.45}
 
 .ui{position:relative;z-index:5;flex:1;display:flex;flex-direction:column}
-.sbar{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0}
-.sig{display:flex;align-items:flex-end;gap:2px}
-.sb{width:4px;border-radius:1px;background:#fff}
-.batt-body{width:20px;height:10px;border:1.5px solid #fff;border-radius:2px;padding:1px;display:flex;align-items:center}
-.batt-fill{height:100%;background:#44ff44;border-radius:1px;width:70%}
-.batt-tip{width:3px;height:5px;background:#fff;border-radius:0 1px 1px 0;margin-left:1px}
 
-.view{position:absolute;top:32px;left:0;right:0;bottom:0;z-index:6;display:none;flex-direction:column}
+.view{position:absolute;top:0;left:0;right:0;bottom:0;z-index:6;display:none;flex-direction:column}
 .view.active{display:flex}
 
 /* SPLASH */
@@ -122,24 +109,12 @@ body{display:flex;justify-content:center;align-items:flex-start;min-height:100vh
 .dialing-dots span:nth-child(3){animation-delay:0.4s}
 @keyframes dd{0%,80%,100%{opacity:0.2}40%{opacity:1}}
 .perm-txt{font-family:'Courier New',monospace;font-size:9px;color:rgba(255,150,150,0.8);text-align:center;margin-top:6px;padding:0 8px}
-
-.bottom-bar{height:28px;background:#000;display:flex;align-items:center;justify-content:center}
-.home-pill{width:90px;height:4px;background:#333;border-radius:2px;cursor:pointer}
 </style>
 </head>
 <body>
 
-<div class="phone">
-<div class="phone-inner">
-
-  <div class="notch-bar">
-    <span class="nb-l" id="clk">9:41</span>
-    <div class="notch"></div>
-    <div class="nb-r"><span>●●●●</span><span>■■■</span></div>
-  </div>
-
-  <div class="screen-wrap">
-    <div class="screen">
+<div class="screen-wrap">
+  <div class="screen">
 
       <div class="bg"></div>
       <div class="dots"></div>
@@ -156,19 +131,6 @@ body{display:flex;justify-content:center;align-items:flex-start;min-height:100vh
       </div>
 
       <div class="ui">
-        <div class="sbar">
-          <div class="sig">
-            <div class="sb" style="height:5px"></div>
-            <div class="sb" style="height:8px"></div>
-            <div class="sb" style="height:11px"></div>
-            <div class="sb" style="height:14px"></div>
-            <div class="sb" style="height:17px;background:rgba(255,255,255,0.3)"></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:1px">
-            <div class="batt-body"><div class="batt-fill"></div></div>
-            <div class="batt-tip"></div>
-          </div>
-        </div>
 
         <!-- SPLASH -->
         <div class="view active" id="vSplash">
@@ -304,12 +266,6 @@ body{display:flex;justify-content:center;align-items:flex-start;min-height:100vh
     <canvas id="nc" class="nc"></canvas>
     <canvas id="cc" class="cc"></canvas>
   </div>
-
-  <div class="bottom-bar">
-    <div class="home-pill" onclick="goTo('vSplash');endCall();stopVM()"></div>
-  </div>
-
-</div>
 </div>
 
 <script>
@@ -364,8 +320,8 @@ clkTick(); setInterval(clkTick,20000);
 /* CRT noise */
 const ncEl=document.getElementById('nc'), nCtx=ncEl.getContext('2d');
 function drawNoise(){
-  ncEl.width=300; ncEl.height=640;
-  const img=nCtx.createImageData(300,640);
+  ncEl.width=window.innerWidth; ncEl.height=window.innerHeight;
+  const img=nCtx.createImageData(ncEl.width,ncEl.height);
   for(let i=0;i<img.data.length;i+=4){const v=Math.random()*255|0;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;}
   nCtx.putImageData(img,0,0);
 }
@@ -374,12 +330,13 @@ drawNoise(); setInterval(drawNoise,100);
 /* CRT chroma */
 const ccEl=document.getElementById('cc'), cCtx=ccEl.getContext('2d');
 function drawChroma(){
-  ccEl.width=300; ccEl.height=640; cCtx.clearRect(0,0,300,640);
-  for(let y=0;y<320;y++){
+  const w=window.innerWidth, h=window.innerHeight;
+  ccEl.width=w; ccEl.height=h; cCtx.clearRect(0,0,w,h);
+  for(let y=0;y<Math.floor(h/2);y++){
     const yo=y*2, iv=Math.random()*0.06;
     if(iv>0.04){
-      cCtx.fillStyle='rgba(255,0,0,'+iv+')'; cCtx.fillRect(2,yo,298,1);
-      cCtx.fillStyle='rgba(0,0,200,'+(iv*0.6)+')'; cCtx.fillRect(-1,yo,298,1);
+      cCtx.fillStyle='rgba(255,0,0,'+iv+')'; cCtx.fillRect(2,yo,w-4,1);
+      cCtx.fillStyle='rgba(0,0,200,'+(iv*0.6)+')'; cCtx.fillRect(-1,yo,w-2,1);
     }
   }
 }
