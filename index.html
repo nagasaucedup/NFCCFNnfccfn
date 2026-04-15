@@ -70,8 +70,6 @@ html,body{width:100%;height:100%;background:#000;display:flex;align-items:center
 .vm-duration{font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:1px;flex:1}
 .vm-progress{flex:2;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden}
 .vm-progress-fill{height:100%;background:#ff4444;width:0%;transition:width 0.1s;box-shadow:0 0 4px #ff0000}
-.back-to-list{margin-top:auto;font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.4);letter-spacing:1px;text-align:center;cursor:pointer;padding:8px;border:1px solid rgba(255,255,255,0.1);border-radius:4px;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
-.back-to-list:active{background:rgba(255,255,255,0.08)}
 
 /* KEYPAD */
 .keypad-view{flex:1;display:flex;flex-direction:column;align-items:center;padding:16px;gap:12px;overflow:hidden}
@@ -446,7 +444,6 @@ function openPlayer(i){
     '<svg width="20" height="20" viewBox="0 0 20 20" fill="white"><polygon points="5,3 17,10 5,17"/></svg></div>'+
     '<div class="vm-duration" id="playerDur">'+fmt(p.dur)+'</div>'+
     '<div class="vm-progress"><div class="vm-progress-fill" id="playerFill"></div></div></div></div>'+
-    '<div class="back-to-list" onclick="goTo(\'vPhonebook\');stopVM()">&#9668; back to phonebook</div></div>';
   goTo('vPlayer');
 }
 
